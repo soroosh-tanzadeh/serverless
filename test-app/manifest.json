@@ -1,0 +1,7 @@
+{
+  "main": "index.js",
+  "name": "Test Application",
+  "version": "1.0.0",
+  "build_dir": "build",
+  "packages": []
+}
