@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"errors"
 	"serveless/internal/worker"
 	"sync"
 )
@@ -9,35 +10,46 @@ import (
 type WorkerPool struct {
 	maxWorker int
 	jobs      chan worker.Job
-	results   chan worker.Result
-	Done      chan struct{}
+	wg        *sync.WaitGroup
+	isClosed  bool
+	context   context.Context
 }
 
-func New(maxWorker int) (*WorkerPool, error) {
+func New(maxWorker int, ctx context.Context) *WorkerPool {
 	return &WorkerPool{
 		maxWorker: maxWorker,
 		jobs:      make(chan worker.Job, maxWorker),
-		results:   make(chan worker.Result, maxWorker),
-		Done:      make(chan struct{}),
-	}, nil
-}
-
-func (this *WorkerPool) Run(ctx context.Context) {
-	var wg sync.WaitGroup
-	for i := 0; i < this.maxWorker; i++ {
-		wg.Add(1)
-		go worker.Worker(ctx, &wg, this.jobs, this.results)
+		isClosed:  false,
+		context:   ctx,
 	}
-	wg.Wait()
-	close(this.Done)
-	close(this.results)
 }
 
-func (this WorkerPool) Results() <-chan worker.Result {
-	return this.results
+func (this *WorkerPool) Run() *sync.WaitGroup {
+	this.wg = &sync.WaitGroup{}
+	for i := 0; i < this.maxWorker; i++ {
+		this.wg.Add(1)
+		go worker.Worker(this.context, this.wg, this.jobs)
+	}
+	go this.gracefulShutdown(this.context)
+	this.wg.Wait()
+	return this.wg
 }
 
-func (this WorkerPool) Add(job worker.Job) {
-	this.jobs <- job
-	close(this.jobs)
+func (this *WorkerPool) gracefulShutdown(ctx context.Context) {
+	go func() {
+		this.wg.Add(1)
+		defer this.wg.Done()
+		<-ctx.Done()
+		this.isClosed = true
+		close(this.jobs)
+	}()
+}
+
+func (this *WorkerPool) Add(job worker.Job) error {
+	if !this.isClosed {
+		this.jobs <- job
+		return nil
+	} else {
+		return errors.New("adding Job to shutdown pool")
+	}
 }

@@ -16,7 +16,7 @@ type Job struct {
 	Args       interface{}
 	Action     ExecutionFn
 	Descriptor JobDescriptor
-	Response   chan Result
+	Response   chan<- Result
 }
 
 type Result struct {
@@ -25,7 +25,7 @@ type Result struct {
 	Descriptor JobDescriptor
 }
 
-func New(args interface{}, action ExecutionFn, response chan Result) *Job {
+func NewJob(args interface{}, action ExecutionFn, response chan<- Result) *Job {
 	return &Job{
 		Descriptor: JobDescriptor{
 			ID: JobID(uuid.NewString()),

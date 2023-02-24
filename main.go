@@ -1,14 +1,45 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	v8 "rogchap.com/v8go"
+	"os"
+	"os/signal"
+	"serveless/internal/worker"
+	"serveless/internal/worker/pool"
+	"syscall"
+	"time"
 )
 
 func main() {
-	iso := v8.NewIsolate()
-	context := v8.NewContext(iso)
-	context.RunScript("const multiply = (a, b) => a * b", "math.js")
-	value, _ := context.RunScript("multiply(2,6)", "main.js")
-	fmt.Println(value.Integer())
+	appContext, cancel := context.WithCancel(context.TODO())
+	workerPool := pool.New(100, appContext)
+	go app(workerPool)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGINT)
+	go func() {
+
+		sig := <-sigs
+		if sig == syscall.SIGINT {
+			for {
+				cancel()
+			}
+		}
+
+	}()
+	workerPool.Run()
+}
+
+func app(workerPool *pool.WorkerPool) {
+	fmt.Println("Main App Thread")
+	for i := 0; i < 20; i++ {
+		var jobId = i
+		time.Sleep(time.Second * 3)
+		workerPool.Add(*worker.NewJob(nil, func(ctx context.Context, args interface{}) (interface{}, error) {
+			fmt.Printf("Job %d Started!\n", jobId)
+			time.Sleep(time.Second * 5)
+			fmt.Printf("Job %d Done!\n", jobId)
+			return i, nil
+		}, nil))
+	}
 }
