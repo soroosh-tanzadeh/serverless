@@ -30,7 +30,7 @@ func (this *WorkerPool) Run() *sync.WaitGroup {
 		this.wg.Add(1)
 		go worker.Worker(this.context, this.wg, this.jobs)
 	}
-	go this.gracefulShutdown(this.context)
+        this.gracefulShutdown(this.context)
 	this.wg.Wait()
 	return this.wg
 }
