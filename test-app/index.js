@@ -1,4 +1,1 @@
-import {multiply} from "./second";
-
-print(multiply(5, 6))
-reponse("Hello World")
+response("Hello World", 422, {"x-cache": true, "x-server": 1023})

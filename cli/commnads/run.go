@@ -2,6 +2,7 @@ package commnads
 
 import (
 	"errors"
+	"fmt"
 	"github.com/urfave/cli/v2"
 	"serveless/internal/executor"
 	"serveless/internal/packer"
@@ -38,10 +39,18 @@ func GetRunCommand() *cli.Command {
 			if err != nil {
 				return err
 			}
-			_, err = executor.Execute(folder+"/build", manifest)
+			responseChannel, err := executor.Execute(folder+"/build", manifest)
 			if err != nil {
 				return err
 			}
+			response := <-responseChannel
+			fmt.Printf("Http Status Code: %d\n", response.Status)
+
+			fmt.Printf("%s\n", response.Content)
+
+			fmt.Print("Headers: ")
+			fmt.Println(response.Headers)
+
 			return nil
 		},
 	}

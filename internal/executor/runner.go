@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"rogchap.com/v8go"
 	"serveless/internal/engine"
+	"serveless/internal/engine/functions/http"
 	"serveless/internal/utils/file"
 )
 
@@ -22,16 +22,16 @@ func ParseManifest(folder string) (*engine.Manifest, error) {
 	return &manifest, nil
 }
 
-func Execute(folder string, manifest *engine.Manifest) (*v8go.Value, error) {
+func Execute(folder string, manifest *engine.Manifest) (chan http.Response, error) {
 	fileName := folder + "/" + manifest.Main
 	if !file.IsTextFile(fileName) {
-		return &v8go.Value{}, errors.New("invalid main file")
+		return nil, errors.New("invalid main file")
 	}
 	mainContent, err := os.ReadFile(fileName)
 	if err != nil {
-		return &v8go.Value{}, err
+		return nil, err
 	}
 
-	e := engine.New(manifest, folder)
+	e := engine.New(manifest)
 	return e.RunScript(string(mainContent), fileName)
 }

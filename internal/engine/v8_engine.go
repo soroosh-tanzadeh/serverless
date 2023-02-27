@@ -1,15 +1,15 @@
 package engine
 
 import (
-	"fmt"
 	"rogchap.com/v8go"
+	"serveless/internal/engine/functions/http"
 )
 
 type Engine struct {
-	context  *v8go.Context
 	version  string
 	name     string
 	packages []string
+	isolate  *v8go.Isolate
 }
 
 type Manifest struct {
@@ -20,29 +20,36 @@ type Manifest struct {
 	Packages []string `json:"packages"`
 }
 
-func registerFunctionCallbacks(isolate *v8go.Isolate, folder string) *v8go.ObjectTemplate {
-	importTemplate := v8go.NewFunctionTemplate(isolate, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		fmt.Printf("%v", info.Args())
-		return nil
-	})
+func registerFunctionCallbacks(isolate *v8go.Isolate, channel chan http.Response) *v8go.ObjectTemplate {
 	global := v8go.NewObjectTemplate(isolate)
-	global.Set("print", importTemplate)
+	global.Set("response", http.ResponseFunction(isolate, channel))
 	return global
 }
 
-func New(manifest *Manifest, folder string) *Engine {
+func New(manifest *Manifest) *Engine {
 	isolate := v8go.NewIsolate()
-	callbacks := registerFunctionCallbacks(isolate, folder)
-	context := v8go.NewContext(isolate, callbacks)
-
 	return &Engine{
-		context:  context,
+		isolate:  isolate,
 		version:  manifest.Version,
 		name:     manifest.Name,
 		packages: manifest.Packages,
 	}
 }
 
-func (e *Engine) RunScript(source string, file string) (*v8go.Value, error) {
-	return e.context.RunScript(source, file)
+func (e *Engine) CreateContext() (*v8go.Context, chan http.Response) {
+	channel := make(chan http.Response, 1)
+	callbacks := registerFunctionCallbacks(e.isolate, channel)
+	context := v8go.NewContext(e.isolate, callbacks)
+	return context, channel
+}
+
+func (e *Engine) RunScript(source string, file string) (chan http.Response, error) {
+	context, responseChannel := e.CreateContext()
+	go func() {
+		_, err := context.RunScript(source, file)
+		if err != nil {
+			return
+		}
+	}()
+	return responseChannel, nil
 }
