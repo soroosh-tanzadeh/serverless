@@ -12,44 +12,45 @@ type WorkerPool struct {
 	jobs      chan worker.Job
 	wg        *sync.WaitGroup
 	isClosed  bool
-	context   context.Context
 }
 
-func New(maxWorker int, ctx context.Context) *WorkerPool {
+func New(maxWorker int) *WorkerPool {
 	return &WorkerPool{
 		maxWorker: maxWorker,
 		jobs:      make(chan worker.Job, maxWorker),
 		isClosed:  false,
-		context:   ctx,
 	}
 }
 
-func (this *WorkerPool) Run() *sync.WaitGroup {
-	this.wg = &sync.WaitGroup{}
-	for i := 0; i < this.maxWorker; i++ {
-		this.wg.Add(1)
-		go worker.Worker(this.context, this.wg, this.jobs)
+func (w *WorkerPool) Run(context context.Context) *sync.WaitGroup {
+	w.wg = &sync.WaitGroup{}
+	for i := 0; i < w.maxWorker; i++ {
+		w.wg.Add(1)
+		go worker.Worker(context, w.wg, w.jobs)
 	}
-        this.gracefulShutdown(this.context)
-	this.wg.Wait()
-	return this.wg
+	w.gracefulShutdown(context)
+	w.wg.Wait()
+	return w.wg
 }
 
-func (this *WorkerPool) gracefulShutdown(ctx context.Context) {
+func (w *WorkerPool) gracefulShutdown(ctx context.Context) {
 	go func() {
-		this.wg.Add(1)
-		defer this.wg.Done()
+		w.wg.Add(1)
+		defer w.wg.Done()
 		<-ctx.Done()
-		this.isClosed = true
-		close(this.jobs)
+		w.isClosed = true
+		close(w.jobs)
 	}()
 }
 
-func (this *WorkerPool) Add(job worker.Job) error {
-	if !this.isClosed {
-		this.jobs <- job
+func (w *WorkerPool) Add(job worker.Job) error {
+	if w.isClosed {
+		return errors.New("adding job to stopped worker")
+	}
+	select {
+	case w.jobs <- job:
 		return nil
-	} else {
-		return errors.New("adding Job to shutdown pool")
+	default:
+		return errors.New("error adding job to channel")
 	}
 }

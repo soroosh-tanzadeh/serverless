@@ -27,7 +27,6 @@ func GetRunCommand() *cli.Command {
 			} else {
 				return errors.New("application path is required")
 			}
-
 			if isDir, _ := file.IsDirectory(folder); !isDir {
 				return errors.New("selected path is not folder")
 			}

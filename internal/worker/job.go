@@ -36,17 +36,17 @@ func NewJob(args interface{}, action ExecutionFn, response chan<- Result) *Job {
 	}
 }
 
-func (this *Job) execute(ctx context.Context) Result {
-	value, err := this.Action(ctx, this.Args)
+func (j *Job) execute(ctx context.Context) Result {
+	value, err := j.Action(ctx, j.Args)
 	if err != nil {
 		return Result{
 			Err:        err,
-			Descriptor: this.Descriptor,
+			Descriptor: j.Descriptor,
 		}
 	}
 
 	return Result{
 		Value:      value,
-		Descriptor: this.Descriptor,
+		Descriptor: j.Descriptor,
 	}
 }
