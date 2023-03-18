@@ -1,1 +1,1 @@
-response("Hello World", 422, {"x-cache": true, "x-server": 1023})
+response('{"message":"Hello world"}', 422, {"content-type": "application/json", "x-cache": true, "x-server": 1025})

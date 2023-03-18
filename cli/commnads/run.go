@@ -2,12 +2,27 @@ package commnads
 
 import (
 	"errors"
-	"fmt"
+	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
+	"log"
+	"serveless/cli/server"
+	"serveless/internal/engine"
 	"serveless/internal/executor"
 	"serveless/internal/packer"
 	"serveless/internal/utils/file"
 )
+
+func build(folder string) (*engine.Manifest, error) {
+	_, err := packer.Build(folder)
+	if err != nil {
+		log.Fatal(err)
+	}
+	manifest, err := executor.ParseManifest(folder)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return manifest, err
+}
 
 func GetRunCommand() *cli.Command {
 	return &cli.Command{
@@ -21,6 +36,12 @@ func GetRunCommand() *cli.Command {
 			},
 		},
 		Action: func(context *cli.Context) error {
+			watcher, err := fsnotify.NewWatcher()
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer watcher.Close()
+
 			var folder string
 			if context.NArg() > 0 {
 				folder = context.Args().Get(0)
@@ -30,26 +51,44 @@ func GetRunCommand() *cli.Command {
 			if isDir, _ := file.IsDirectory(folder); !isDir {
 				return errors.New("selected path is not folder")
 			}
-			_, err := packer.Build(folder)
+
+			manifest, err := build(folder)
 			if err != nil {
 				return err
 			}
-			manifest, err := executor.ParseManifest(folder)
+			httpServer := server.NewInternalHttpServer("0.0.0.0", 8090, folder+"/build", manifest)
+			log.Println("Running Http Server on Port 8090...")
+			// Start listening for events.
+			go func() {
+				for {
+					select {
+					case event, ok := <-watcher.Events:
+						if !ok {
+							return
+						}
+						if event.Has(fsnotify.Write) || event.Has(fsnotify.Remove) || event.Has(fsnotify.Create) || event.Has(fsnotify.Rename) {
+							_, err := build(folder)
+							if err != nil {
+								log.Println(err.Error())
+							}
+						}
+					case err, ok := <-watcher.Errors:
+						if !ok {
+							return
+						}
+						log.Println("error:", err)
+					}
+				}
+			}()
+			err = watcher.Add(folder)
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = httpServer.Start()
 			if err != nil {
 				return err
 			}
-			responseChannel, err := executor.Execute(folder+"/build", manifest)
-			if err != nil {
-				return err
-			}
-			response := <-responseChannel
-			fmt.Printf("Http Status Code: %d\n", response.Status)
-
-			fmt.Printf("%s\n", response.Content)
-
-			fmt.Print("Headers: ")
-			fmt.Println(response.Headers)
-
+			<-make(chan struct{})
 			return nil
 		},
 	}
