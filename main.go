@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"serveless/internal/worker"
-	"serveless/internal/worker/pool"
+	"serverless/internal/worker"
+	"serverless/internal/worker/pool"
 	"syscall"
 	"time"
 )

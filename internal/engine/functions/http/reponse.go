@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"rogchap.com/v8go"
-	"serveless/internal/engine/utils"
+	"serverless/internal/engine/utils"
 )
 
 type Header map[string]interface{}
@@ -24,7 +24,10 @@ func ResponseFunction(isolate *v8go.Isolate, channelChannel chan Response) *v8go
 		var content string
 
 		if len(args) < 1 {
-			utils.ThrowException("Response content is required", isolate)
+			err := utils.ThrowException("Response content is required", isolate)
+			if err != nil {
+				return nil
+			}
 			return nil
 		}
 		if len(args) >= 1 {
@@ -34,7 +37,10 @@ func ResponseFunction(isolate *v8go.Isolate, channelChannel chan Response) *v8go
 		if len(args) >= 2 {
 			status = int(args[1].Integer())
 			if http.StatusText(status) == "" {
-				utils.ThrowException("Invalid Http Status code", isolate)
+				err := utils.ThrowException("Invalid Http Status code", isolate)
+				if err != nil {
+					return nil
+				}
 				return nil
 			}
 		}

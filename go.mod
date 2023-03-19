@@ -1,4 +1,4 @@
-module serveless
+module serverless
 
 go 1.19
 

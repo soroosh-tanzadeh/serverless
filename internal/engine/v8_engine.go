@@ -2,7 +2,7 @@ package engine
 
 import (
 	"rogchap.com/v8go"
-	"serveless/internal/engine/functions/http"
+	"serverless/internal/engine/functions/http"
 )
 
 type Engine struct {
@@ -39,6 +39,7 @@ func New(manifest *Manifest) *Engine {
 func (e *Engine) CreateContext() (*v8go.Context, chan http.Response) {
 	channel := make(chan http.Response, 1)
 	callbacks := registerFunctionCallbacks(e.isolate, channel)
+	e.isolate.GetHeapStatistics()
 	context := v8go.NewContext(e.isolate, callbacks)
 	return context, channel
 }

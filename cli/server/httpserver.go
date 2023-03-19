@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"serveless/internal/engine"
-	"serveless/internal/executor"
+	"serverless/internal/engine"
+	"serverless/internal/executor"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func NewInternalHttpServer(listen string, port int, folder string, manifest *eng
 func (s *InternalHttpServer) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	responseChannel, err := executor.Execute(s.folder, s.manifest)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	response := <-responseChannel
 	rw.WriteHeader(response.Status)

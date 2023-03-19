@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/evanw/esbuild/pkg/api"
 	"os"
-	"serveless/internal/executor"
+	"serverless/internal/executor"
 	"strings"
 )
 

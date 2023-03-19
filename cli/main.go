@@ -4,7 +4,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
-	"serveless/cli/commnads"
+	"serverless/cli/commnads"
 )
 
 func main() {

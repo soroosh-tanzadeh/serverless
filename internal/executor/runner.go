@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"serveless/internal/engine"
-	"serveless/internal/engine/functions/http"
-	"serveless/internal/utils/file"
+	"serverless/internal/engine"
+	"serverless/internal/engine/functions/http"
+	"serverless/internal/utils/file"
 )
 
 func ParseManifest(folder string) (*engine.Manifest, error) {

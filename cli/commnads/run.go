@@ -1,15 +1,21 @@
 package commnads
 
 import (
+	context2 "context"
 	"errors"
 	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
 	"log"
-	"serveless/cli/server"
-	"serveless/internal/engine"
-	"serveless/internal/executor"
-	"serveless/internal/packer"
-	"serveless/internal/utils/file"
+	"net/http"
+	"os"
+	"os/signal"
+	"serverless/cli/server"
+	"serverless/internal/engine"
+	"serverless/internal/executor"
+	"serverless/internal/packer"
+	"serverless/internal/utils/file"
+	"syscall"
+	"time"
 )
 
 func build(folder string) (*engine.Manifest, error) {
@@ -29,10 +35,16 @@ func GetRunCommand() *cli.Command {
 		Name:  "run",
 		Usage: "Execute Serverless Application",
 		Flags: []cli.Flag{
+			&cli.IntFlag{
+				Name:    "port",
+				Aliases: []string{"p"},
+				Value:   8090,
+				Usage:   "Webserver Port",
+			},
 			&cli.StringFlag{
-				Name:    "folder",
-				Aliases: []string{"f"},
-				Usage:   "Application Folder",
+				Name:  "host",
+				Value: "127.0.0.1",
+				Usage: "Webserver Host",
 			},
 		},
 		Action: func(context *cli.Context) error {
@@ -56,7 +68,7 @@ func GetRunCommand() *cli.Command {
 			if err != nil {
 				return err
 			}
-			httpServer := server.NewInternalHttpServer("0.0.0.0", 8090, folder+"/build", manifest)
+			httpServer := server.NewInternalHttpServer(context.String("host"), context.Int("port"), folder+"/build", manifest)
 			log.Println("Running Http Server on Port 8090...")
 			// Start listening for events.
 			go func() {
@@ -84,11 +96,27 @@ func GetRunCommand() *cli.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			err = httpServer.Start()
+			go func() {
+				err := httpServer.Start()
+				if err != nil && err != http.ErrServerClosed {
+					log.Fatal(err.Error())
+				}
+			}()
+
+			sigs := make(chan os.Signal, 1)
+			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+			<-sigs
+
+			log.Println("Graceful shutdown within 5sec...")
+			timeoutContext, cancel := context2.WithTimeout(context.Context, 5*time.Second)
+			err = httpServer.Stop(timeoutContext)
 			if err != nil {
-				return err
+				log.Fatal(err)
 			}
-			<-make(chan struct{})
+
+			defer cancel()
+			<-timeoutContext.Done()
+
 			return nil
 		},
 	}

@@ -3,7 +3,7 @@ package pool
 import (
 	"context"
 	"errors"
-	"serveless/internal/worker"
+	"serverless/internal/worker"
 	"sync"
 )
 

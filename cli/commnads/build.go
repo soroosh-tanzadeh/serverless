@@ -3,8 +3,8 @@ package commnads
 import (
 	"errors"
 	"github.com/urfave/cli/v2"
-	"serveless/internal/packer"
-	"serveless/internal/utils/file"
+	"serverless/internal/packer"
+	"serverless/internal/utils/file"
 )
 
 func GetBuildCommand() *cli.Command {
