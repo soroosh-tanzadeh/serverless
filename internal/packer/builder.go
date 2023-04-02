@@ -8,11 +8,6 @@ import (
 	"strings"
 )
 
-//type BuildOptions struct {
-//	Minify bool
-//
-//}
-
 func Build(folder string) (api.BuildResult, error) {
 	manifest, err := executor.ParseManifest(folder)
 	if err != nil {
