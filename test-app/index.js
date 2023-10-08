@@ -1,6 +1,11 @@
+import("./second")
 response(
-    '<h1>Hello World</h1>' +
-    '<button onclick="alert(\'Hello\')">Click Me</button>',
+    '<h1>Click to show hello world</h1>' +
+    '<button onclick="alert(\'Hello World\')">Click Me</button>',
     200,
-    {"content-type": "text/html", "x-cache": true, "x-server": 1025}
+    {
+        "content-type": "text/html",
+        "x-cache": true,
+        "x-server": 1025
+    }
 )

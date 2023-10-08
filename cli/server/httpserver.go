@@ -33,10 +33,15 @@ func (s *InternalHttpServer) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 		log.Print(err)
 	}
 	response := <-responseChannel
-	rw.WriteHeader(response.Status)
+
+	// Write Headers
 	for key, value := range response.Headers {
-		rw.Header().Add(key, fmt.Sprintf("%s", value))
+		print(key + ":" + fmt.Sprintf("%v", value) + "\n")
+		rw.Header().Set(key, fmt.Sprintf("%v", value))
 	}
+	rw.WriteHeader(response.Status)
+
+	// Write Response
 	_, err = rw.Write([]byte(response.Content))
 	if err != nil {
 		return

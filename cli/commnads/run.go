@@ -3,8 +3,6 @@ package commnads
 import (
 	context2 "context"
 	"errors"
-	"github.com/fsnotify/fsnotify"
-	"github.com/urfave/cli/v2"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +14,9 @@ import (
 	"serverless/internal/utils/file"
 	"syscall"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/urfave/cli/v2"
 )
 
 func build(folder string) (*engine.Manifest, error) {
@@ -108,7 +109,7 @@ func GetRunCommand() *cli.Command {
 			<-sigs
 
 			log.Println("Graceful shutdown within 5sec...")
-			timeoutContext, cancel := context2.WithTimeout(context.Context, 5*time.Second)
+			timeoutContext, cancel := context2.WithTimeout(context.Context, 1*time.Second)
 			err = httpServer.Stop(timeoutContext)
 			if err != nil {
 				log.Fatal(err)
